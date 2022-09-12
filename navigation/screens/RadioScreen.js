@@ -1,21 +1,28 @@
-import { StyleSheet, Text, View } from 'react-native';
-import screens from '../../utils/screens';
-import VectorIcon from '../../components/VectorIcon';
-
-const RadioScreen = () => (
-  <View style={styles.screen}>
-    <VectorIcon path={screens.RADIO.path} color="#ff0688" size={72} />
-    <Text>This is Radio</Text>
-  </View>
-);
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import AudioPlayer from '../../components/AudioPlayer';
+import StationsPanel from '../../components/StationsPanel';
 
 const styles = StyleSheet.create({
-  screen: {
+  container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+  },
+  list: {
+    flex: 1,
   },
 });
+
+const RadioScreen = () => {
+  const [station, setStation] = useState(null);
+
+  return (
+    <View style={styles.container}>
+      <AudioPlayer station={station} setStation={setStation} />
+      <View style={styles.list}>
+        <StationsPanel station={station} onStationChange={setStation} />
+      </View>
+    </View>
+  );
+};
 
 export default RadioScreen;
