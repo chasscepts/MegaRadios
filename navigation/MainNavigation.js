@@ -1,6 +1,6 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import screens from '../utils/screens';
 import VectorIcon from '../components/VectorIcon';
@@ -47,6 +47,7 @@ const MainNavigation = () => (
               paddingTop: 5,
             },
             headerShown: false,
+            tabBarShowLabel: false,
           })}
         >
           <Tab.Screen

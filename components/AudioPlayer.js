@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
   },
   coverWrap: {
     position: 'relative',
-    height: 100,
+    height: 70,
   },
   stationWrap: {
     flex: 1,

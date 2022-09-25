@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ImageBackground, StyleSheet, View } from 'react-native';
 import AudioPlayer from '../../components/AudioPlayer';
 import StationsPanel from '../../components/StationsPanel';
+import bg from '../../assets/images/glassy.jpg';
 
 const styles = StyleSheet.create({
   container: {
@@ -18,9 +19,9 @@ const RadioScreen = () => {
   return (
     <View style={styles.container}>
       <AudioPlayer station={station} setStation={setStation} />
-      <View style={styles.list}>
+      <ImageBackground style={styles.list} source={bg}>
         <StationsPanel station={station} onStationChange={setStation} />
-      </View>
+      </ImageBackground>
     </View>
   );
 };

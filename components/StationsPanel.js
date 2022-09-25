@@ -12,11 +12,12 @@ import stationsManager, { stations } from "../utils/stations";
 const styles = StyleSheet.create({
   stationPanel: {
     position: 'relative',
-    backgroundColor: '#fff',
+    backgroundColor: '#eee',
     marginBottom: 7,
     marginTop: 7,
     marginLeft: 10,
     marginRight: 10,
+    borderRadius: 5,
     shadowColor: 'black',
     shadowOpacity: 0.3,
     shadowRadius: 1,
@@ -43,14 +44,14 @@ const styles = StyleSheet.create({
   },
   indicator: {
     backgroundColor: '#145b28',
-    color: 'fff',
+    color: '#fff',
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '900',
     fontFamily: 'Roboto',
     paddingBottom: 3,
     paddingTop: 3,
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingLeft: 7,
+    paddingRight: 7,
     borderRadius: 3,
   },
   textWrap: {
