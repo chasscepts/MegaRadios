@@ -72,7 +72,7 @@ export const stations = [
     name: "The Beat FM London",
     slogan: "The Beat Of Your City",
     tag: "The Beat London 103.6 FM",
-    streamUrl: "http://s2.xrad.io:8012/;stream.mp3",
+    streamUrl: "http://stream.zeno.fm/x59sz6hkev8uv",
     color1: "#E70F0F",
     color2: "#FFFFFF",
     twitterId: "27435509",
