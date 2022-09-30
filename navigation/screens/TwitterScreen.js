@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import screens from '../../utils/screens';
 import VectorIcon from '../../components/VectorIcon';
@@ -18,6 +18,7 @@ const styles = StyleSheet.create({
     left: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#1d9bf0',
   },
   webview: {
     flex: 1,
@@ -46,7 +47,7 @@ const html = `
 const TwitterScreen = () => (
   <View style={styles.screen}>
     <View style={styles.bg}>
-      <VectorIcon path={screens.TWITTER.path} color="#1d9bf0" size={144} />
+      <VectorIcon path={screens.TWITTER.path} color="fff" size={144} />
     </View>
     <WebView
       style={styles.webview}

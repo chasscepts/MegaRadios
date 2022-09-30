@@ -1,7 +1,8 @@
 import { Audio } from 'expo-av';
 import { useEffect, useState } from 'react';
 import {
-  Image,
+  Animated,
+  Easing,
   ImageBackground,
   StyleSheet,
   Text,
@@ -52,9 +53,26 @@ const styles = StyleSheet.create({
   playBtn: {
     width: 40,
     height: 40,
+    position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#3A0101',
+    borderRadius: 20,
+  },
+  rippleWrap: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ripple: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
   },
   tag: {
@@ -72,78 +90,106 @@ const lastStationIndex = stations.length - 1;
 const playerStates = {
   PLAYING: 'PLAYING',
   PAUSED: 'STOPPED',
+  LOADING: 'LOADING',
 };
 
-const Player = (() => {
-  let playing = false;
-  let loaded = false;
-  let loading = false;
-  let _onError = (err) => console.log(err);
-  let _onStateChange;
-  const sound = new Audio.Sound();
+export const AudioPlayer = (() => {
+  Audio.setAudioModeAsync({
+    allowsRecordingIOS: false,
+    staysActiveInBackground: true,
+    interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DUCK_OTHERS,
+    playsInSilentModeIOS: true,
+    shouldDuckAndroid: true,
+    interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS,
+    playThroughEarpieceAndroid: false
+  })
+  .then(() => {
+    sound = new Audio.Sound();
+  })
+  .catch(() => {
+    sound = new Audio.Sound();
+  });
 
-  const play = () => {
-    sound.playAsync()
+  let playing = false;
+  let loading = false;
+  let _src;
+  let _onStateChange;
+  /**
+   * {Sound}
+   */
+  let sound;
+
+  const play = () => new Promise((resolve, reject) => {
+    if (!_src) {
+      reject(new Error('Player not loaded!'));
+      return;
+    }
+    if (_onStateChange) {
+      _onStateChange({ state: playerStates.LOADING });
+    }
+    sound.loadAsync({ uri: _src })
+      .then(() => sound.playAsync())
       .then(() => {
         playing = true;
         if (_onStateChange) {
           _onStateChange({ state: playerStates.PLAYING });
         }
+        resolve();
       })
-      .catch((err) => _onError(err));
-  };
+      .catch((err) => reject(err));
+  });
 
-  const stop = () => {
+  const stop = () => new Promise((resolve, reject) => {
     sound.stopAsync()
+      .then(() => sound.unloadAsync())
       .then(() => {
         playing = false;
         if (_onStateChange) {
           _onStateChange({ state: playerStates.PAUSED });
         }
+        resolve();
       })
-      .catch((err) => _onError(err));
-  };
-
-  const loadSrc = (src) => {
-    sound.loadAsync({ uri: src })
-      .then(() => {
-        loaded = true;
-        if (playing) {
-          play();
-        }
-        loading = false;
-      })
-      .catch((err) => {
-        loading = false;
-        _onError(err);
-      });
-  }
+      .catch((err) => reject(err));
+  });
 
   return {
     play: () => {
-      if (!loaded || playing) return;
+      if (!_src || playing) return;
       play();
     },
     stop: () => {
-      if (!(loaded && playing)) return;
+      if (!(_src && playing)) return;
       stop();
     },
     /**
      * @param {string} src
      */
-    set  src (src) {
-      if (loading) return;
-      loading = true;
-      if (loaded) {
-        sound.unloadAsync()
-          .then(() => loadSrc(src))
-          .catch((err) => {
-            _onError(err);
-            loading = false;
-          });
-      } else {
-        loadSrc(src);
-      }
+    load: (src) => {
+      return new Promise((resolve, reject) => {
+        if (loading) {
+          reject(new Error('Please wait for previous load request to finish!'));
+          return;
+        }
+
+        loading = true;
+        _src = src;
+
+        if (playing) {
+          stop()
+            .then(() => play())
+            .then(() => {
+              loading = false;
+              resolve();
+            })
+            .catch((err) => {
+              loading = false();
+              reject(err);
+            })
+        } else {
+          loading = false;
+          resolve();
+        }
+      });
     },
     /**
      * @param {EventListener} callback
@@ -160,8 +206,68 @@ const Player = (() => {
   };
 })();
 
-const PlayButton = ({ isStop, onClick }) => {
-  const path = isStop ? 'M18,18H6V6H18V18Z' : 'M8,5.14V19.14L19,12.14L8,5.14Z';
+
+const RippleView = ({ delay, backgroundColor }) => {
+  const scale = new Animated.Value(0);
+  const opacity = new Animated.Value(1);
+  const scaleConfig = {
+    toValue: 1,
+    duration: 2000,
+    easing: Easing.linear,
+    useNativeDriver: true,
+  };
+  const opacityConfig = {
+    toValue: 0,
+    duration: 3000,
+    easing: Easing.linear,
+    useNativeDriver: true,
+  };
+
+  if (delay) {
+    scaleConfig.delay = delay;
+    opacityConfig.delay = delay;
+  }
+
+  Animated.loop(
+    Animated.parallel([
+      Animated.timing(scale, scaleConfig),
+      Animated.timing(opacity, opacityConfig),
+    ]),
+  ).start();
+
+  return (
+    <View style={[styles.rippleWrap, { backgroundColor: 'transparent' }]}>
+      <Animated.View
+        style={[
+          styles.ripple,
+          { transform: [{ scale }], opacity, backgroundColor }
+        ]}
+      />
+    </View>
+  );
+};
+
+RippleView.defaultProps = {
+  delay: 0,
+};
+
+const PlayButton = ({ status, onClick }) => {
+  if (status === playerStates.LOADING) {
+    return (
+      <View
+        style={[
+          styles.playBtn,
+          { backgroundColor: 'transparent' }
+        ]}
+      >
+        <RippleView backgroundColor="#a42525" />
+        <RippleView delay={2500} backgroundColor="#f34444" />
+        <RippleView delay={1500} backgroundColor="#c93333" />
+      </View>
+    );
+  }
+
+  const path = status === playerStates.PLAYING ? 'M18,18H6V6H18V18Z' : 'M8,5.14V19.14L19,12.14L8,5.14Z';
 
   return (
     <TouchableOpacity onPress={onClick}>
@@ -176,12 +282,12 @@ const NavButton = ({ isNext, disabled, onClick }) => {
   const path = isNext ? 'M4,5V19L11,12M18,5V19H20V5M11,5V19L18,12' : 'M20,5V19L13,12M6,5V19H4V5M13,5V19L6,12';
 
   if (disabled) {
-    return <VectorIcon path={path} color="gray" size={16} />;
+    return <VectorIcon path={path} color="gray" size={24} />;
   }
 
   return (
     <TouchableOpacity onPress={onClick}>
-      <VectorIcon path={path} color="#fff" size={16} />
+      <VectorIcon path={path} color="#fff" size={24} />
     </TouchableOpacity>
   );
 };
@@ -199,25 +305,19 @@ const NavButton = ({ isNext, disabled, onClick }) => {
  * @param {string} props.station.twitterId
  * @param {string} props.station.logo
  */
-const AudioPlayer = ({ station, setStation }) => {
-  const [playing, setPlaying] = useState(false);
+const AudioPlayerView = ({ station, setStation }) => {
+  const [status, setStatus] = useState(playerStates.PAUSED);
 
   useEffect(() => {
-    Player.onStateChange = (({ state }) => {
-      setPlaying(state === playerStates.PLAYING);
+    AudioPlayer.onStateChange = (({ state }) => {
+      setStatus(state);
     });
   });
 
-  useEffect(() => {
-    if (station) {
-      Player.src = station.streamUrl;
-    }
-  }, [station]);
-
   if (!station) {
     return (
-      <View>
-        <Text>No Station Selected</Text>
+      <View style={{ backgroundColor: '#3A0101', padding: 5 }}>
+        <Text style={{ color: '#fff', fontWeight: 'bold' }}>No Station Selected</Text>
       </View>
     );
   }
@@ -225,10 +325,10 @@ const AudioPlayer = ({ station, setStation }) => {
   const currentIndex = stations.indexOf(station);
 
   const handPlayClick = () => {
-    if (playing) {
-      Player.stop();
+    if (status === playerStates.PLAYING) {
+      AudioPlayer.stop();
     } else {
-      Player.play();
+      AudioPlayer.play();
     }
   };
 
@@ -267,7 +367,7 @@ const AudioPlayer = ({ station, setStation }) => {
       <View style={styles.controls}>
         <NavButton disabled={currentIndex === 0} onClick={previous} />
         <View style={styles.platBtnWrap}>
-          <PlayButton isStop={playing} onClick={handPlayClick} />
+          <PlayButton status={status} onClick={handPlayClick} />
         </View>
         <NavButton disabled={currentIndex === lastStationIndex} onClick={next} isNext />
       </View>
@@ -275,4 +375,4 @@ const AudioPlayer = ({ station, setStation }) => {
   );
 };
 
-export default AudioPlayer;
+export default AudioPlayerView;

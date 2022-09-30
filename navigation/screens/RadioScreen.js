@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ImageBackground, StyleSheet, View } from 'react-native';
-import AudioPlayer from '../../components/AudioPlayer';
+import AudioPlayerView, { AudioPlayer } from '../../components/AudioPlayerView';
 import StationsPanel from '../../components/StationsPanel';
+import stationsManager from '../../utils/stations';
 import bg from '../../assets/images/glassy.jpg';
 
 const styles = StyleSheet.create({
@@ -16,11 +17,27 @@ const styles = StyleSheet.create({
 const RadioScreen = () => {
   const [station, setStation] = useState(null);
 
+  useEffect(() => {
+    stationsManager.getLastPlayed()
+      .then((station) => AudioPlayer.load(station.streamUrl))
+      .then(() => setStation(station))
+      .catch(() => {});
+  }, []);
+
+  const handleStationChange = (station) => {
+    AudioPlayer.load(station.streamUrl)
+      .then(() => {
+        setStation(station);
+        stationsManager.setLastPlayed(station);
+      })
+      .catch(() => {});
+  };
+
   return (
     <View style={styles.container}>
-      <AudioPlayer station={station} setStation={setStation} />
+      <AudioPlayerView station={station} setStation={handleStationChange} />
       <ImageBackground style={styles.list} source={bg}>
-        <StationsPanel station={station} onStationChange={setStation} />
+        <StationsPanel station={station} onStationChange={handleStationChange} />
       </ImageBackground>
     </View>
   );

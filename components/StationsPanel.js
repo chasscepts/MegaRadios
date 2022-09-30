@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import stationsManager, { stations } from "../utils/stations";
+import { stations } from "../utils/stations";
 
 const styles = StyleSheet.create({
   stationPanel: {
@@ -119,30 +119,17 @@ const StationsPanel = ({ station, onStationChange }) => {
   const [selectedId, setSelectedId] = useState(null);
 
   useEffect(() => {
-    stationsManager.getLastPlayed()
-      .then((station) => {
-        onStationChange(station);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     if (station) {
       setSelectedId(station.id);
     }
   }, [station]);
-
-  const handleSelection = (station) => {
-    onStationChange(station);
-    stationsManager.setLastPlayed(station);
-  };
 
   return (
     <FlatList
       data={stations}
       extraData={selectedId}
       keyExtractor={(item) => item.id}
-      renderItem={({ item }) => <StationPanel isActive={item.id === selectedId} station={item} onClick={handleSelection} />}
+      renderItem={({ item }) => <StationPanel isActive={item.id === selectedId} station={item} onClick={onStationChange} />}
     />
   );
 };
